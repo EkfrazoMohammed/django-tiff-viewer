@@ -161,9 +161,10 @@ from rest_framework import status
 
 import requests
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 class ConvertTiffAPIView(APIView):
-    parser_classes = [MultiPartParser, FormParser]  # To handle file uploads
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Added JSONParser for JSON requests
 
     def post(self, request, *args, **kwargs):
         try:
