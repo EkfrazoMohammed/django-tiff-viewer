@@ -102,16 +102,87 @@ from rest_framework import status
 
 #ModuleNotFoundError: No module named 'PIL'
 
+# class ConvertTiffAPIView(APIView):
+#     parser_classes = [MultiPartParser, FormParser]  # To handle file uploads
+
+#     def post(self, request, *args, **kwargs):
+#         try:
+#             # Get the uploaded file
+#             uploaded_file = request.FILES['file']
+#             file_content = uploaded_file.read()
+
+#             # Open the TIFF file from the uploaded bytes
+#             with raster_open(io.BytesIO(file_content)) as src:
+#                 # Transform bounds to WGS84 if necessary
+#                 if src.crs and src.crs.to_string() != "EPSG:4326":
+#                     bounds = transform_bounds(src.crs, "EPSG:4326", *src.bounds)
+#                 else:
+#                     bounds = src.bounds
+
+#                 # Read and process the image data
+#                 data = src.read(out_shape=(src.count, src.height // 10, src.width // 10))
+#                 data = reshape_as_image(data[:3])  # RGB bands
+
+#                 # Normalize data
+#                 epsilon = 1e-8
+#                 data_normalized = ((data - data.min()) / (data.max() - data.min() + epsilon) * 255).astype(np.uint8)
+
+#                 # Convert to RGBA (adding alpha channel)
+#                 img = Image.fromarray(data_normalized)
+#                 img = img.convert("RGBA")
+
+#                 # Replace black pixels with transparent ones
+#                 datas = img.getdata()
+#                 new_data = [
+#                     (0, 0, 0, 0) if item[0] < 10 and item[1] < 10 and item[2] < 10 else item
+#                     for item in datas
+#                 ]
+#                 img.putdata(new_data)
+
+#                 # Save the image to a byte array
+#                 img_byte_arr = io.BytesIO()
+#                 img.save(img_byte_arr, format='PNG')
+
+#                 # Convert image to base64 string
+#                 img_byte_arr.seek(0)  # Reset pointer to the beginning of the image byte array
+#                 img_base64 = base64.b64encode(img_byte_arr.read()).decode('utf-8')
+
+#                 # Return the base64 image and bounds in JSON response
+#                 return Response({
+#                     'base64_image': f"data:image/png;base64,{img_base64}",
+#                     'bounds': [
+#                         [bounds[1], bounds[0]],  # [min_lat, min_lon]
+#                         [bounds[3], bounds[2]]   # [max_lat, max_lon]
+#                     ]
+#                 }, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+import requests
+from django.core.files.uploadedfile import InMemoryUploadedFile
+
 class ConvertTiffAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]  # To handle file uploads
 
     def post(self, request, *args, **kwargs):
         try:
-            # Get the uploaded file
-            uploaded_file = request.FILES['file']
-            file_content = uploaded_file.read()
+            # Check if a URL is provided in the request
+            file_url = request.data.get('file_url')
+            
+            if file_url:
+                # Download the file from the provided URL
+                response = requests.get(file_url, stream=True)
+                if response.status_code != 200:
+                    return Response({'error': 'Failed to fetch the file from the provided URL'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Open the TIFF file from the uploaded bytes
+                file_content = response.content
+            else:
+                # Get the uploaded file from the request
+                uploaded_file = request.FILES['file']
+                file_content = uploaded_file.read()
+
+            # Open the TIFF file from the downloaded or uploaded bytes
             with raster_open(io.BytesIO(file_content)) as src:
                 # Transform bounds to WGS84 if necessary
                 if src.crs and src.crs.to_string() != "EPSG:4326":
