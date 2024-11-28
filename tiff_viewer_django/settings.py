@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',  # Add this line
     'convert',  # Add the convert app
+    'rest_framework'
 ]
 
 MIDDLEWARE = [

@@ -114,12 +114,18 @@ class ConvertTiffAPIView(APIView):
             # Open the TIFF file from the uploaded bytes
             with raster_open(io.BytesIO(file_content)) as src:
                 # Transform bounds to WGS84 if necessary
-                bounds = transform_bounds(src.crs, "EPSG:4326", *src.bounds) if src.crs != "EPSG:4326" else src.bounds
-                
+                if src.crs and src.crs.to_string() != "EPSG:4326":
+                    bounds = transform_bounds(src.crs, "EPSG:4326", *src.bounds)
+                else:
+                    bounds = src.bounds
+
                 # Read and process the image data
                 data = src.read(out_shape=(src.count, src.height // 10, src.width // 10))
                 data = reshape_as_image(data[:3])  # RGB bands
-                data_normalized = ((data - data.min()) / (data.max() - data.min()) * 255).astype(np.uint8)
+
+                # Normalize data
+                epsilon = 1e-8
+                data_normalized = ((data - data.min()) / (data.max() - data.min() + epsilon) * 255).astype(np.uint8)
 
                 # Convert to RGBA (adding alpha channel)
                 img = Image.fromarray(data_normalized)
@@ -127,13 +133,10 @@ class ConvertTiffAPIView(APIView):
 
                 # Replace black pixels with transparent ones
                 datas = img.getdata()
-                new_data = []
-                for item in datas:
-                    # Change all black (also shades of black)
-                    if item[0] < 10 and item[1] < 10 and item[2] < 10:
-                        new_data.append((0, 0, 0, 0))  # Set transparency (alpha = 0)
-                    else:
-                        new_data.append(item)
+                new_data = [
+                    (0, 0, 0, 0) if item[0] < 10 and item[1] < 10 and item[2] < 10 else item
+                    for item in datas
+                ]
                 img.putdata(new_data)
 
                 # Save the image to a byte array
