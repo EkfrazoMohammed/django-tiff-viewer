@@ -18,7 +18,7 @@ def convert_tiff(request):
     """Convert a TIFF file to PNG with transparent background."""
     if request.method == "POST" and request.FILES.get("file"):
 
-        # # HD clarity
+        #  HD clarity
         try:
             # Get the uploaded file
             uploaded_file = request.FILES.get("file")
@@ -82,52 +82,6 @@ def convert_tiff(request):
                         ],
                     }
                 )
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request"}, status=400)
-
-
-@csrf_exempt
-def convert_shapefile(request):
-    """Convert uploaded Shapefile to GeoJSON."""
-    if request.method == "POST" and request.FILES.getlist("files"):
-        try:
-            uploaded_files = {
-                file.name: file for file in request.FILES.getlist("files")
-            }
-            with tempfile.TemporaryDirectory() as temp_dir:
-                for file_name, uploaded_file in uploaded_files.items():
-                    with open(f"{temp_dir}/{file_name}", "wb") as temp_file:
-                        temp_file.write(uploaded_file.read())
-
-                gdf = gpd.read_file(temp_dir)
-                geojson = gdf.to_json()
-
-            return JsonResponse({"geojson": geojson})
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request"}, status=400)
-
-
-@csrf_exempt
-def get_shapefile_bounds(request):
-    """Return the bounds of an uploaded shapefile."""
-    if request.method == "POST" and request.FILES.getlist("files"):
-        try:
-            uploaded_files = {
-                file.name: file for file in request.FILES.getlist("files")
-            }
-            with tempfile.TemporaryDirectory() as temp_dir:
-                for file_name, uploaded_file in uploaded_files.items():
-                    with open(f"{temp_dir}/{file_name}", "wb") as temp_file:
-                        temp_file.write(uploaded_file.read())
-
-                gdf = gpd.read_file(temp_dir)
-                bounds = gdf.total_bounds.tolist()
-
-            return JsonResponse({"bounds": bounds})
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
