@@ -159,20 +159,40 @@ def get_shapefile_bounds(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
+# import requests
+# from django.http import HttpResponse, JsonResponse
+
+# def proxy_pdf(request):
+#     # Get the URL from the query parameters
+#     pdf_url = request.GET.get('url')
+    
+#     if not pdf_url:
+#         return JsonResponse({'error': 'URL parameter is required'}, status=400)
+    
+#     try:
+#         response = requests.get(pdf_url, stream=True)
+#         response.raise_for_status()
+#         return HttpResponse(response.raw, content_type='application/pdf')
+#     except requests.RequestException as e:
+#         return JsonResponse({'error': f'Error fetching PDF: {str(e)}'}, status=500)
+
+
 import requests
 from django.http import HttpResponse, JsonResponse
 
 def proxy_pdf(request):
-    # Get the URL from the query parameters
     pdf_url = request.GET.get('url')
     
     if not pdf_url:
         return JsonResponse({'error': 'URL parameter is required'}, status=400)
-    
+
     try:
         response = requests.get(pdf_url, stream=True)
         response.raise_for_status()
-        return HttpResponse(response.raw, content_type='application/pdf')
+
+        # Read the content and return it as a proper HTTP response
+        return HttpResponse(response.content, content_type='application/pdf')
+    
     except requests.RequestException as e:
         return JsonResponse({'error': f'Error fetching PDF: {str(e)}'}, status=500)
 
